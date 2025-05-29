@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Poppins", sans-serif;
+        }
+        
+        .container {
+            height: 100vh;
+            width: 100%;
+            align-items: center;
+            display: flex;
+            justify-content: center;
+            background-color: #fcfcfc;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 5px 10px 0 rgba(0, 0, 0, 0.3);
+            width: 600px;
+            min-height: 350px;
+            background-color: #ffffff;
+            padding: 10px 30px 40px;
+        }
+        
+        .card h3 {
+            font-size: 22px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .drop_box {
+            margin: 10px 0;
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            border: 3px dotted #a3a3a3;
+            border-radius: 5px;
+        }
+        
+        .drop_box h4 {
+            font-size: 16px;
+            font-weight: 400;
+            color: #2e2e2e;
+        }
+        
+        .drop_box p {
+            margin-top: 10px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: #a3a3a3;
+        }
+        
+        .btn {
+            text-decoration: none;
+            background-color: #005af0;
+            color: #ffffff;
+            padding: 10px 20px;
+            border: none;
+            outline: none;
+            transition: 0.3s;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .btn:hover {
+            background-color: #ffffff;
+            color: #005af0;
+            border: 1px solid #005af0;
+        }
+        
+        .form {
+            width: 100%;
+        }
+        
+        .form input {
+            margin: 10px 0;
+            width: 100%;
+            background-color: #e2e2e2;
+            border: none;
+            outline: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+        }
+        
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .file-info {
+            text-align: center;
+            margin: 10px 0;
+            color: #666;
+        }
+        
+        #upload-form {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h3>Dosya Yükleme</h3>
+            
+            <div class="drop_box" id="drop-area">
+                <header>
+                    <h4>Dosya Seçin</h4>
+                </header>
+                <p>Desteklenen Dosyalar: PDF, DOC, DOCX</p>
+                <button class="btn" type="button" onclick="document.getElementById('file-input').click()">Dosya Seç</button>
+            </div>
+            
+            <form method="post" enctype="multipart/form-data" id="upload-form">
+                {% csrf_token %}
+                <input type="file" id="file-input" name="file" accept=".doc,.docx,.pdf" style="display: none;">
+                
+                <div class="file-info" id="file-info" style="display: none;">
+                    <strong>Seçilen Dosya:</strong> <span id="file-name"></span>
+                </div>
+                
+                <div class="form">
+                    <input type="email" name="email" placeholder="E-posta adresinizi girin" required>
+                    <button class="btn" type="submit">Yükle</button>
+                </div>
+            </form>
+            
+            {% if message %}
+                <div class="message success">
+                    {{ message }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('file-input');
+        const dropArea = document.getElementById('drop-area');
+        const uploadForm = document.getElementById('upload-form');
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'block';
+                dropArea.style.display = 'none';
+                uploadForm.style.display = 'block';
+            }
+        });
+
+        // Drag and drop functionality
+        dropArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropArea.style.backgroundColor = '#f0f8ff';
+        });
+
+        dropArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dropArea.style.backgroundColor = '';
+        });
+
+        dropArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropArea.style.backgroundColor = '';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                const file = files[0];
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'block';
+                dropArea.style.display = 'none';
+                uploadForm.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
