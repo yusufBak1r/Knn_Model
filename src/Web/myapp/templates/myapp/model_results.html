@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Model Sonuçları - KNN Model Değerlendirme{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center mb-0">
+                        <i class="bi bi-table me-2"></i>Model Sonuçları
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% if message %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="bi {% if message.tags == 'success' %}bi-check-circle{% else %}bi-exclamation-circle{% endif %} me-2"></i>
+                        {{ message|safe }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST" action="{% url 'model_results' %}" class="mb-4">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="form-group">
+                                    <label for="email" class="form-label">
+                                        <i class="bi bi-envelope me-1"></i>E-posta
+                                    </label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                    <div class="invalid-feedback">Lütfen geçerli bir e-posta adresi girin.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="form-group">
+                                    <label for="schoolNumber" class="form-label">
+                                        <i class="bi bi-card-text me-1"></i>Okul Numarası
+                                    </label>
+                                    <input type="text" class="form-control" id="schoolNumber" name="schoolNumber" required>
+                                    <div class="invalid-feedback">Lütfen okul numaranızı girin.</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search me-2"></i>Sonuçları Göster
+                            </button>
+                        </div>
+                    </form>
+
+                    {% if has_results %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><i class="bi bi-file-earmark-binary me-1"></i>Model Adı</th>
+                                    <th><i class="bi bi-database me-1"></i>Test Veri Seti</th>
+                                    <th><i class="bi bi-graph-up me-1"></i>Doğruluk Oranı</th>
+                                    <th><i class="bi bi-calendar-plus me-1"></i>Yüklenme Tarihi</th>
+                                    <th><i class="bi bi-calendar-check me-1"></i>Değerlendirme Tarihi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for model in models %}
+                                <tr>
+                                    <td>{{ model.model_file.name }}</td>
+                                    <td>{{ model.test_data.name }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if model.accuracy >= 0.8 %}success{% elif model.accuracy >= 0.6 %}warning{% else %}danger{% endif %}">
+                                            {{ model.accuracy|floatformat:2 }}%
+                                        </span>
+                                    </td>
+                                    <td>{{ model.uploaded_at|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ model.evaluated_at|date:"d.m.Y H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

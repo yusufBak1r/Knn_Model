@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}Model Yükle - KNN Model Değerlendirme{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-lg">
+                <div class="card-header bg-gradient-primary text-white py-4">
+                    <h3 class="text-center mb-0">
+                        <i class="bi bi-cloud-upload me-2"></i>KNN Model Yükleme
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    {% if message %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                        <i class="bi {% if message.tags == 'success' %}bi-check-circle{% else %}bi-exclamation-circle{% endif %} me-2"></i>
+                        {{ message|safe }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Kişisel Bilgiler -->
+                        <div class="card mb-4 border-0 bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">
+                                    <i class="bi bi-person-vcard me-2"></i>Kişisel Bilgiler
+                                </h5>
+                                <div class="mb-3">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="first_name" name="first_name" placeholder="Ad" required>
+                                        <label for="first_name">
+                                            <i class="bi bi-person me-1"></i>Ad
+                                        </label>
+                                        <div class="invalid-feedback">Lütfen adınızı girin.</div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Soyad" required>
+                                        <label for="last_name">
+                                            <i class="bi bi-person me-1"></i>Soyad
+                                        </label>
+                                        <div class="invalid-feedback">Lütfen soyadınızı girin.</div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-floating">
+                                        <input type="email" class="form-control" id="email" name="email" placeholder="E-posta" required>
+                                        <label for="email">
+                                            <i class="bi bi-envelope me-1"></i>E-posta
+                                        </label>
+                                        <div class="invalid-feedback">Lütfen geçerli bir e-posta adresi girin.</div>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="school_number" name="school_number" placeholder="Okul Numarası" required>
+                                        <label for="school_number">
+                                            <i class="bi bi-card-text me-1"></i>Okul Numarası
+                                        </label>
+                                        <div class="invalid-feedback">Lütfen okul numaranızı girin.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Model ve Test Veri Seti -->
+                        <div class="card mb-4 border-0 bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title mb-3">
+                                    <i class="bi bi-database me-2"></i>Model ve Test Veri Seti
+                                </h5>
+                                <div class="mb-4">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="test_data" name="test_data" required>
+                                            <option value="">Test veri seti seçin</option>
+                                            {% for test_data in test_data %}
+                                                <option value="{{ test_data.id }}">{{ test_data.name }} - {{ test_data.description }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <label for="test_data">
+                                            <i class="bi bi-database me-1"></i>Test Veri Seti
+                                        </label>
+                                        <div class="invalid-feedback">Lütfen bir test veri seti seçin.</div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="model_file" class="form-label">
+                                        <i class="bi bi-file-earmark-binary me-1"></i>Model Dosyası
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="file" class="form-control" id="model_file" name="model_file" accept=".pkl,.joblib" required>
+                                        <label class="input-group-text" for="model_file">
+                                            <i class="bi bi-upload"></i>
+                                        </label>
+                                    </div>
+                                    <div class="form-text mt-2">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Lütfen geçerli bir scikit-learn KNN model dosyası (.pkl veya .joblib) yükleyin.
+                                    </div>
+                                    <div class="invalid-feedback">Lütfen bir model dosyası seçin.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Butonlar -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-cloud-upload me-2"></i>Modeli Yükle
+                            </button>
+                            <a href="{% url 'model_results' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-table me-2"></i>Sonuçları Görüntüle
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #0d6efd, #0a58ca);
+}
+
+.form-floating > .form-control,
+.form-floating > .form-select {
+    height: calc(3rem + 2px);
+    line-height: 1.25;
+}
+
+.form-floating > label {
+    padding: 0.8rem 0.75rem;
+}
+
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label {
+    transform: scale(.85) translateY(-0.5rem) translateX(0.15rem);
+    color: #0d6efd;
+}
+
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border-color: #ced4da;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #0d6efd, #0a58ca);
+    border: none;
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(45deg, #0a58ca, #084298);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+}
+
+.btn-outline-secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(108, 117, 125, 0.2);
+}
+
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.card-title {
+    color: #495057;
+    font-weight: 600;
+}
+
+.form-text {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+</style>
+
+<!-- Form Validation Script -->
+<script>
+(function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+</script>
+{% endblock %} 

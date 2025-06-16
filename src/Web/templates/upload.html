@@ -1,157 +1,191 @@
-<div class="container">
-  <div class="card">
-    <h3>Upload Files</h3>
-    <div class="drop_box">
-      <header>
-        <h4>Select File here</h4>
-      </header>
-      <p>Files Supported: PDF, TEXT, DOC , DOCX</p>
-      <input type="file" hidden accept=".doc,.docx,.pdf" id="fileID" style="display:none;">
-      <button class="btn">Choose File</button>
+{% extends 'base.html' %}
+
+{% block title %}Dosya Yükle - KNN Model Değerlendirme{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Dosya Yükle</h4>
+            </div>
+            <div class="card-body">
+                {% if debug %}
+                <div class="alert alert-info">
+                    <strong>Debug Bilgisi:</strong>
+                    <p>Message: {{ message|default:"Mesaj yok" }}</p>
+                    <p>Success: {{ success|default:"Başarı değeri yok" }}</p>
+                </div>
+                {% endif %}
+
+                {% if message %}
+                <div class="alert {% if success %}alert-success{% else %}alert-danger{% endif %} alert-dismissible fade show">
+                    <div class="d-flex">
+                        <div class="me-3">
+                            {% if success %}
+                            <i class="fas fa-check-circle fa-2x"></i>
+                            {% else %}
+                            <i class="fas fa-exclamation-circle fa-2x"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h5 class="alert-heading">
+                                {% if success %}Başarılı!{% else %}Hata!{% endif %}
+                            </h5>
+                            {{ message|safe }}
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endif %}
+
+                <form id="uploadForm" enctype="multipart/form-data" method="POST" action="{% url 'upload' %}" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <div class="upload-area p-4 border rounded text-center" id="dropArea">
+                            <i class="fas fa-file-upload fa-3x mb-3 text-primary"></i>
+                            <h5>Dosyayı Sürükleyin veya Seçin</h5>
+                            <p class="text-muted mb-2">Desteklenen formatlar: PDF, TEXT, DOC, DOCX</p>
+                            <input type="file" name="file" id="fileID" class="d-none" accept=".doc,.docx,.pdf,.txt" required>
+                            <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileID').click()">
+                                Dosya Seç
+                            </button>
+                            <div id="fileInfo" class="mt-2"></div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">E-posta</label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="E-posta adresinizi girin" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="schoolNumber" class="form-label">Okul Numarası</label>
+                            <input type="text" class="form-control" id="schoolNumber" name="schoolNumber" placeholder="Okul numaranızı girin" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="firstName" class="form-label">Ad</label>
+                            <input type="text" class="form-control" id="firstName" name="firstName" placeholder="Adınızı girin" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="lastName" class="form-label">Soyad</label>
+                            <input type="text" class="form-control" id="lastName" name="lastName" placeholder="Soyadınızı girin" required>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-upload me-2"></i>Dosyayı Yükle
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-
-  </div>
 </div>
-<style>@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@200;300;400;500;600;700&display=swap");
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap');
-  .container {
-  height: 100vh;
-  width: 100%;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-}
+{% endblock %}
 
-.left-half,
-.right-half {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  width: 50%;
-  z-index: 0;
-}
-
-.left-half {
-  left: 0;
-  background-color: #212529;
-}
-
-.right-half {
-  right: 0;
-  background-color: #17a2b8;
-}
-
-.card {
-  position: relative;
-  z-index: 1;
-}
-
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: "Poppins", sans-serif;
-  }
-  
-  .container {
-    height: 100vh;
-    width: 100%;
-    align-items: center;
-    display: flex;
-    justify-content: center;
-    background-color: #fcfcfc;
-  }
-  
-  .card {
-    border-radius: 10px;
-    box-shadow: 0 5px 10px 0 rgba(0, 0, 0, 0.3);
-    width: 600px;
-    height: 260px;
-    background-color: #ffffff;
-    padding: 10px 30px 40px;
-  }
-  
-  .card h3 {
-    font-size: 22px;
-    font-weight: 600;
-    
-  }
-  
-  .drop_box {
-    margin: 10px 0;
-    padding: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    border: 3px dotted #a3a3a3;
+{% block extra_css %}
+<style>
+.upload-area {
+    border: 2px dashed #dee2e6;
     border-radius: 5px;
-  }
-  
-  .drop_box h4 {
-    font-size: 16px;
-    font-weight: 400;
-    color: #2e2e2e;
-  }
-  
-  .drop_box p {
-    margin-top: 10px;
-    margin-bottom: 20px;
-    font-size: 12px;
-    color: #a3a3a3;
-  }
-  
-  .btn {
-    text-decoration: none;
-    background-color: #005af0;
-    color: #ffffff;
-    padding: 10px 20px;
-    border: none;
-    outline: none;
-    transition: 0.3s;
-  }
-  
-  .btn:hover{
-    text-decoration: none;
-    background-color: #ffffff;
-    color: #005af0;
-    padding: 10px 20px;
-    border: none;
-    outline: 1px solid #010101;
-  }
-  .form input {
-    margin: 10px 0;
-    width: 100%;
-    background-color: #e2e2e2;
-    border: none;
-    outline: none;
-    padding: 12px 20px;
-    border-radius: 4px;
-  }
-  </style>
-  <script>const dropArea = document.querySelector(".drop_box"),
-    button = dropArea.querySelector("button"),
-    dragText = dropArea.querySelector("header"),
-    input = dropArea.querySelector("input");
-  let file;
-  var filename;
-  
-  button.onclick = () => {
-    input.click();
-  };
-  
-  input.addEventListener("change", function (e) {
-    var fileName = e.target.files[0].name;
-    let filedata = `
-      <form action="" method="post">
-      <div class="form">
-      <h4>${fileName}</h4>
-      <input type="email" placeholder="Enter email upload file">
-      <button class="btn">Upload</button>
-      </div>
-      </form>`;
-    dropArea.innerHTML = filedata;
-  });
-  </script>
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.upload-area:hover {
+    border-color: #0d6efd;
+    background-color: #f8f9fa;
+}
+
+.upload-area.dragover {
+    border-color: #0d6efd;
+    background-color: #e9ecef;
+}
+
+#fileInfo {
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('fileID');
+    const fileInfo = document.getElementById('fileInfo');
+    const form = document.getElementById('uploadForm');
+
+    // Sürükle-bırak olayları
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        dropArea.classList.add('dragover');
+    }
+
+    function unhighlight(e) {
+        dropArea.classList.remove('dragover');
+    }
+
+    dropArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        fileInput.files = files;
+        updateFileInfo(files[0]);
+    }
+
+    fileInput.addEventListener('change', function() {
+        updateFileInfo(this.files[0]);
+    });
+
+    function updateFileInfo(file) {
+        if (file) {
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            const isValidFormat = ['.doc', '.docx', '.pdf', '.txt'].includes('.' + fileExt);
+            
+            fileInfo.innerHTML = `
+                <div class="alert ${isValidFormat ? 'alert-info' : 'alert-danger'} mb-0">
+                    <strong>Seçilen Dosya:</strong> ${file.name}<br>
+                    <strong>Boyut:</strong> ${(file.size / 1024).toFixed(2)} KB<br>
+                    ${!isValidFormat ? '<strong>Uyarı:</strong> Desteklenmeyen dosya formatı!' : ''}
+                </div>
+            `;
+        } else {
+            fileInfo.innerHTML = '';
+        }
+    }
+
+    // Form doğrulama
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+});
+</script>
+{% endblock %}
