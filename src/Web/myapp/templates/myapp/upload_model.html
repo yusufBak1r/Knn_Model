@@ -90,6 +90,24 @@
                                     </div>
                                 </div>
 
+                                <div class="mb-4">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="algorithm_type" name="algorithm_type" required>
+                                            <option value="">Algoritma seçin</option>
+                                            <option value="knn">K-Nearest Neighbors (KNN)</option>
+                                            <option value="naive_bayes">Naive Bayes</option>
+                                        </select>
+                                        <label for="algorithm_type">
+                                            <i class="bi bi-cpu me-1"></i>Makine Öğrenmesi Algoritması
+                                        </label>
+                                        <div class="invalid-feedback">Lütfen bir algoritma seçin.</div>
+                                    </div>
+                                    <div class="form-text mt-2">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Yükleyeceğiniz model dosyasının seçilen algoritma ile uyumlu olduğundan emin olun.
+                                    </div>
+                                </div>
+
                                 <div class="mb-3">
                                     <label for="model_file" class="form-label">
                                         <i class="bi bi-file-earmark-binary me-1"></i>Model Dosyası
@@ -102,7 +120,7 @@
                                     </div>
                                     <div class="form-text mt-2">
                                         <i class="bi bi-info-circle me-1"></i>
-                                        Lütfen geçerli bir scikit-learn KNN model dosyası (.pkl veya .joblib) yükleyin.
+                                        Lütfen geçerli bir scikit-learn model dosyası (.pkl veya .joblib) yükleyin.
                                     </div>
                                     <div class="invalid-feedback">Lütfen bir model dosyası seçin.</div>
                                 </div>

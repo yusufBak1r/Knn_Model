@@ -6,6 +6,8 @@ from datetime import datetime
 import traceback
 import joblib
 from sklearn.base import BaseEstimator
+from sklearn.naive_bayes import GaussianNB, MultinomialNB, BernoulliNB
+from sklearn.neighbors import KNeighborsClassifier
 
 def detect_target_column(df):
     """
@@ -93,16 +95,22 @@ def detect_target_column(df):
     
     return target_column, feature_columns
 
-def evaluate_knn_model(model_file_path, test_data_path):
+def evaluate_model(model_file_path, test_data_path, algorithm_type='knn'):
     """
-    KNN modelini değerlendir ve doğruluk oranını hesapla
+    Modeli değerlendir ve doğruluk oranını hesapla
     
     Args:
         model_file_path: Model dosyasının yolu (.pkl veya .joblib)
         test_data_path: Test veri seti dosyasının yolu (.csv)
+        algorithm_type: Algoritma tipi ('knn' veya 'naive_bayes')
     
     Returns:
-        float: Doğruluk oranı (0-1 arası)
+        dict: {
+            'accuracy': float,
+            'confusion_matrix': list,
+            'classification_report': dict,
+            'class_labels': list
+        } veya None
     """
     try:
         # Model dosyasını yükle (hem pickle hem joblib formatını dene)
@@ -127,6 +135,20 @@ def evaluate_knn_model(model_file_path, test_data_path):
             print("Model, sklearn.base.BaseEstimator sınıfından türetilmiş olmalıdır.")
             return None
 
+        # Algoritma tipine göre model tipini kontrol et
+        if algorithm_type == 'knn':
+            if not isinstance(model, KNeighborsClassifier):
+                print("Seçilen algoritma tipi KNN ancak yüklenen model KNN değil.")
+                print(f"Yüklenen model tipi: {type(model).__name__}")
+                print("Lütfen KNeighborsClassifier tipinde bir model yükleyin.")
+                return None
+        elif algorithm_type == 'naive_bayes':
+            if not isinstance(model, (GaussianNB, MultinomialNB, BernoulliNB)):
+                print("Seçilen algoritma tipi Naive Bayes ancak yüklenen model Naive Bayes değil.")
+                print(f"Yüklenen model tipi: {type(model).__name__}")
+                print("Lütfen GaussianNB, MultinomialNB veya BernoulliNB tipinde bir model yükleyin.")
+                return None
+
         # Test verisini yükle
         try:
             test_data = pd.read_csv(test_data_path)
@@ -146,6 +168,22 @@ def evaluate_knn_model(model_file_path, test_data_path):
         X_test = test_data[feature_columns]
         y_test = test_data[target_column]
 
+        # Naive Bayes için veri tipini kontrol et
+        if algorithm_type == 'naive_bayes':
+            # Negatif değer kontrolü (MultinomialNB için)
+            if isinstance(model, MultinomialNB):
+                if (X_test < 0).any().any():
+                    print("MultinomialNB modeli için test verisi negatif değerler içermemeli.")
+                    print("Lütfen verilerinizi uygun şekilde ölçeklendirin veya GaussianNB kullanın.")
+                    return None
+            
+            # Binary değer kontrolü (BernoulliNB için)
+            if isinstance(model, BernoulliNB):
+                if not X_test.isin([0, 1]).all().all():
+                    print("BernoulliNB modeli için test verisi sadece 0 ve 1 değerlerini içermelidir.")
+                    print("Lütfen verilerinizi binary formata dönüştürün veya GaussianNB kullanın.")
+                    return None
+
         # Model özellik sayısını kontrol et
         if hasattr(model, 'n_features_in_'):
             if model.n_features_in_ != X_test.shape[1]:
@@ -156,14 +194,104 @@ def evaluate_knn_model(model_file_path, test_data_path):
                 print(f"Test verisi özellikleri: {feature_columns}")
                 return None
 
-        # Tahminleri yap ve doğruluk oranını hesapla
+        # Tahminleri yap ve metrikleri hesapla
         try:
             y_pred = model.predict(X_test)
             accuracy = accuracy_score(y_test, y_pred)
-            print(f"\nModel değerlendirme başarılı!")
+            
+            # Sınıf etiketlerini al
+            unique_labels = sorted(list(set(y_test.tolist() + y_pred.tolist())))
+            
+            # Confusion matrix hesapla
+            from sklearn.metrics import confusion_matrix, classification_report
+            cm = confusion_matrix(y_test, y_pred, labels=unique_labels)
+            
+            # Classification report hesapla (dict olarak)
+            cr = classification_report(y_test, y_pred, labels=unique_labels, output_dict=True, zero_division=0)
+            
+            # Ek performans metriklerini hesapla
+            from sklearn.metrics import precision_recall_fscore_support
+            
+            # Her sınıf için manuel olarak specificity hesapla
+            def calculate_specificity_per_class(cm, class_idx):
+                """
+                Belirli bir sınıf için specificity hesapla
+                Specificity = TN / (TN + FP)
+                """
+                # True Negative: Diğer tüm sınıfların doğru tahmin edilme sayısı
+                tn = np.sum(cm) - (np.sum(cm[class_idx, :]) + np.sum(cm[:, class_idx]) - cm[class_idx, class_idx])
+                # False Positive: Bu sınıf olarak yanlış tahmin edilenler
+                fp = np.sum(cm[:, class_idx]) - cm[class_idx, class_idx]
+                
+                if tn + fp == 0:
+                    return 0.0
+                return tn / (tn + fp)
+            
+            # Her sınıf için specificity hesapla
+            specificities = []
+            for i in range(len(unique_labels)):
+                spec = calculate_specificity_per_class(cm, i)
+                specificities.append(spec)
+            
+            # Classification report'a specificity ekle
+            for i, class_name in enumerate(unique_labels):
+                if str(class_name) in cr:
+                    cr[str(class_name)]['specificity'] = specificities[i]
+            
+            # Macro ve weighted average specificity hesapla
+            macro_specificity = np.mean(specificities)
+            
+            # Weighted specificity hesapla (sınıf dağılımına göre ağırlıklı)
+            class_support = [cr[str(label)]['support'] for label in unique_labels]
+            total_support = sum(class_support)
+            weighted_specificity = sum(spec * support for spec, support in zip(specificities, class_support)) / total_support if total_support > 0 else 0
+            
+            # Macro average'a specificity ekle
+            if 'macro avg' in cr:
+                cr['macro avg']['specificity'] = macro_specificity
+            
+            # Weighted average'a specificity ekle  
+            if 'weighted avg' in cr:
+                cr['weighted avg']['specificity'] = weighted_specificity
+            
+            # Template için f1-score key'ini f1_score olarak değiştir
+            def fix_f1_score_keys(report_dict):
+                if isinstance(report_dict, dict):
+                    new_dict = {}
+                    for key, value in report_dict.items():
+                        if isinstance(value, dict):
+                            new_value = {}
+                            for sub_key, sub_value in value.items():
+                                if sub_key == 'f1-score':
+                                    new_value['f1_score'] = sub_value
+                                else:
+                                    new_value[sub_key] = sub_value
+                            new_dict[key] = new_value
+                        else:
+                            new_dict[key] = value
+                    return new_dict
+                return report_dict
+            
+            cr = fix_f1_score_keys(cr)
+            
+            # Algoritma tipine göre özel bilgiler
+            algorithm_name = "K-Nearest Neighbors" if algorithm_type == 'knn' else "Naive Bayes"
+            model_type_name = type(model).__name__
+            
+            print(f"\n{algorithm_name} model değerlendirme başarılı!")
+            print(f"Model tipi: {model_type_name}")
             print(f"Test veri seti boyutu: {len(X_test)} örnek")
             print(f"Özellik sayısı: {X_test.shape[1]}")
             print(f"Doğruluk oranı: {accuracy:.2%}")
+            
+            # KNN için özel bilgiler
+            if algorithm_type == 'knn' and hasattr(model, 'n_neighbors'):
+                print(f"K değeri (komşu sayısı): {model.n_neighbors}")
+            
+            # Naive Bayes için özel bilgiler
+            if algorithm_type == 'naive_bayes':
+                if hasattr(model, 'class_prior_') and model.class_prior_ is not None:
+                    print(f"Sınıf öncel olasılıkları: {model.class_prior_}")
             
             # Sınıf dağılımını göster
             print("\nSınıf dağılımı:")
@@ -173,14 +301,20 @@ def evaluate_knn_model(model_file_path, test_data_path):
             print(pd.Series(y_pred).value_counts().to_dict())
             
             # Karmaşıklık matrisi (eğer sınıf sayısı azsa)
-            if len(np.unique(y_test)) <= 10:
-                from sklearn.metrics import confusion_matrix, classification_report
+            if len(unique_labels) <= 10:
                 print("\nKarmaşıklık Matrisi:")
-                print(confusion_matrix(y_test, y_pred))
+                print(cm)
                 print("\nSınıflandırma Raporu:")
-                print(classification_report(y_test, y_pred))
+                print(classification_report(y_test, y_pred, labels=unique_labels, zero_division=0))
             
-            return accuracy
+            # Sonuçları dict olarak döndür
+            return {
+                'accuracy': accuracy,
+                'confusion_matrix': cm.tolist(),  # JSON serializable
+                'classification_report': cr,
+                'class_labels': [str(label) for label in unique_labels]  # String olarak sakla
+            }
+            
         except Exception as e:
             print(f"Model değerlendirme hatası: {str(e)}")
             print("Model ve test veri seti uyumsuz olabilir.")
@@ -192,6 +326,13 @@ def evaluate_knn_model(model_file_path, test_data_path):
         print("Hata detayı:")
         print(traceback.format_exc())
         return None
+
+def evaluate_knn_model(model_file_path, test_data_path):
+    """
+    KNN modelini değerlendir (backward compatibility için)
+    """
+    result = evaluate_model(model_file_path, test_data_path, 'knn')
+    return result['accuracy'] if result else None
 
 def update_model_evaluation(user_model):
     """
@@ -210,21 +351,27 @@ def update_model_evaluation(user_model):
         test_data_path = user_model.test_data.file.path
 
         print(f"\nModel değerlendirmesi başlatılıyor...")
+        print(f"Algoritma tipi: {user_model.get_algorithm_type_display()}")
         print(f"Model dosyası: {user_model.model_file.name}")
         print(f"Test veri seti: {user_model.test_data.name}")
 
-        # Modeli değerlendir
-        accuracy = evaluate_knn_model(model_path, test_data_path)
+        # Modeli algoritma tipine göre değerlendir
+        result = evaluate_model(model_path, test_data_path, user_model.algorithm_type)
 
-        if accuracy is not None:
+        if result is not None:
             # Sonuçları güncelle
-            user_model.accuracy = accuracy
+            user_model.accuracy = result['accuracy']
+            user_model.confusion_matrix = result['confusion_matrix']
+            user_model.classification_report = result['classification_report']
+            user_model.class_labels = result['class_labels']
             user_model.evaluated_at = datetime.now()
             user_model.save()
             print(f"\nModel değerlendirmesi tamamlandı ve kaydedildi.")
+            print(f"Confusion matrix ve classification report da kaydedildi.")
         else:
             print("\nModel değerlendirilemedi.")
             print("Lütfen model dosyanızın ve test veri setinin doğru formatta olduğundan emin olun.")
+            print(f"Beklenen model tipi: {user_model.get_algorithm_type_display()}")
 
     except Exception as e:
         print(f"Model güncelleme hatası: {str(e)}")

@@ -55,16 +55,23 @@
                         <table class="table table-hover">
                             <thead class="table-light">
                                 <tr>
+                                    <th><i class="bi bi-cpu me-1"></i>Algoritma</th>
                                     <th><i class="bi bi-file-earmark-binary me-1"></i>Model Adı</th>
                                     <th><i class="bi bi-database me-1"></i>Test Veri Seti</th>
                                     <th><i class="bi bi-graph-up me-1"></i>Doğruluk Oranı</th>
                                     <th><i class="bi bi-calendar-plus me-1"></i>Yüklenme Tarihi</th>
                                     <th><i class="bi bi-calendar-check me-1"></i>Değerlendirme Tarihi</th>
+                                    <th><i class="bi bi-grid-3x3-gap me-1"></i>Confusion Matrix</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for model in models %}
                                 <tr>
+                                    <td>
+                                        <span class="badge bg-{% if model.algorithm_type == 'knn' %}primary{% else %}info{% endif %}">
+                                            {{ model.get_algorithm_type_display }}
+                                        </span>
+                                    </td>
                                     <td>{{ model.model_file.name }}</td>
                                     <td>{{ model.test_data.name }}</td>
                                     <td>
@@ -74,6 +81,17 @@
                                     </td>
                                     <td>{{ model.uploaded_at|date:"d.m.Y H:i" }}</td>
                                     <td>{{ model.evaluated_at|date:"d.m.Y H:i" }}</td>
+                                    <td>
+                                        {% if model.confusion_matrix %}
+                                        <a href="{% url 'confusion_matrix' model.id %}" class="btn btn-sm btn-outline-primary" title="Confusion Matrix'i Görüntüle">
+                                            <i class="bi bi-grid-3x3-gap me-1"></i>Görüntüle
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">
+                                            <i class="bi bi-x-circle me-1"></i>Mevcut değil
+                                        </span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
